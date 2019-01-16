@@ -14,6 +14,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 
 public class Main {
 
@@ -21,7 +23,8 @@ public class Main {
     static private PDImageXObject pdImage;
     static private PDFont fontLato, fontLatoBold;
 
-    static String infile = "deltakere.txt";
+    static String infile1 = "fu.txt";
+    static String infile2 = "ir.txt";
     static String outfile = "result.pdf";
 
     static private float papersizeX = 595;  //A4 port -- http://www.papersizes.org/a-sizes-in-pixels.htm
@@ -30,34 +33,41 @@ public class Main {
     static private float cardW = 250;
     static private float cardH = 160;
 
-    static ArrayList<String> entry;
     static int cardsPerPage;
-    static int pages;
+    static int pages=500;
 
     public static void main(String[] args) throws IOException {
         doc = new PDDocument();
         fontLato = PDType0Font.load(doc, new File("Lato-Regular.ttf"));
         fontLatoBold = PDType0Font.load(doc, new File("Lato-Bold.ttf"));
-        entry = new ArrayList<String>();
+        ArrayList<String> fuNavn = new ArrayList<String>();
+        ArrayList<String> irNavn = new ArrayList<String>();
 
-        System.out.println("Reading from "+infile);
-        BufferedReader br = new BufferedReader(new FileReader(infile));
+        System.out.println("Reading fu from "+infile1);
+        BufferedReader br = new BufferedReader(new FileReader(infile1));
         String line = br.readLine();
         while (line != null)
         {
-            entry.add(line);
+            fuNavn.add(line);
+            line = br.readLine();
+        }
+        br.close();
+
+        System.out.println("Reading ir from "+infile2);
+        br = new BufferedReader(new FileReader(infile2));
+        line = br.readLine();
+        while (line != null)
+        {
+            irNavn.add(line);
             line = br.readLine();
         }
         br.close();
 
 
-        System.out.println(""+ entry.size()+" cards to print.");
-        int cards= entry.size();
-        cardsPerPage=10;
-        pages=(int) Math.ceil(cards/cardsPerPage);
-        for (int i=0;i<=pages;i++) {
+
+        for (int i=0;i<pages;i++) {
             System.out.println("Writing page "+(i+1));
-            addPageFront();
+            addPage(fuNavn,irNavn);
         }
 
         doc.save(outfile);
@@ -70,18 +80,54 @@ public class Main {
 
     private static float getCardY(int i) {return papersizeY-(papersizeY/10)-(papersizeY/5)*(float)Math.floor(i/2);}
 
-    private static void addPageFront() throws IOException {
+    private static void addPage(ArrayList<String> fuNavn, ArrayList<String> irNavn) throws IOException {
+
+        Collections.shuffle(fuNavn);
+        Collections.shuffle(irNavn);
+        System.out.println(irNavn.size());
         PDPage page =PDFHelper.getA4PortraitPage();
         doc.addPage(page);
         PDPageContentStream contents = new PDPageContentStream(doc, page);
-        for (int i=0;i<cardsPerPage;i++) {
-            if (entry.size()==0) break;
-            String name=entry.get(0);
-            entry.remove(0);
-            addCard(getCardX(i),getCardY(i),contents,name);
-            System.out.println(name);
+
+        float y=papersizeY-50;
+        float x=80;
+
+        PDFHelper.writeText(contents,"Stemmeseddel - fagutvalget/instituttrådet H18/V19", fontLato, 20, x+20, y);y-=20;
+
+        PDFHelper.writeText(contents,"Ranger kandidatene fra 1 og oppover slik at 1 er ditt høyeste ønske", fontLato, 12, x+20, y);y-=16;
+        PDFHelper.writeText(contents,"Du kan rangere opp til 12 kandidater til fagutvalget, og 3 til instituttrådet", fontLato, 12, x+20, y);y-=16;y-=16;
+
+        PDFHelper.writeText(contents,"Om stemmen din har rangert høyere enn 12, har to like tall (til samme valg), eller har", fontLato, 12, x+20, y);y-=16;
+        PDFHelper.writeText(contents,"hoppet over et tall vil den anses som ugyldig", fontLato, 12, x+20, y);y-=16;y-=16;
+
+        PDFHelper.writeText(contents,"Når du er ferdig brettes arket 1 gang på langsiden og legges i stemmekassen", fontLato, 12, x+20, y);y-=16;
+
+        y=papersizeY-250;
+        x=80;
+        int fontsize=14;
+        PDFHelper.writeText(contents,"Fagutvalget", fontLato, 22, x+20, y+20);
+        for (int i=0;i<fuNavn.size();i++) {
+            PDFHelper.writeText(contents, fuNavn.get(i), fontLato, fontsize, x+20, y-fontsize*1.5f*i);
+            contents.setStrokingColor(0,0,0);
+            contents.setLineWidth(0.5f);
+            contents.moveTo(x, y-fontsize*1.5f*i);
+            contents.lineTo(x+15, y-fontsize*1.5f*i);
+            contents.stroke();
+
         }
-        contents.stroke();
+
+        x=350;
+        PDFHelper.writeText(contents,"Instituttrådet", fontLato, 22, x+20, y+20);
+        for (int i=0;i<irNavn.size();i++) {
+            PDFHelper.writeText(contents, irNavn.get(i), fontLato, fontsize, x+20, y-fontsize*1.5f*i);
+            contents.setStrokingColor(0,0,0);
+            contents.setLineWidth(0.5f);
+            contents.moveTo(x, y-fontsize*1.5f*i);
+            contents.lineTo(x+15, y-fontsize*1.5f*i);
+            contents.stroke();
+
+        }
+
         contents.close();
     }
 
